@@ -295,6 +295,9 @@ export function mergeGuestProgressIntoUser(userId: string, guestProgress: Player
   };
 
   saveAccounts(accounts);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { passwordHash: _, ...safeUser } = account;
+  notifyAuthChange(safeUser);
 }
 
 /**

@@ -190,6 +190,12 @@ export function saveLocalProgress(progress: PlayerProgress): boolean {
     }
 
     storage.setItem(STORAGE_KEY, JSON.stringify(progress));
+
+    // Dispatch auth change event so header and profile update live immediately
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("yoga_bliss_auth_change_v1"));
+    }
+
     return true;
   } catch (err) {
     console.warn("Failed to save player progress to localStorage:", err);

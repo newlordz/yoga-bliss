@@ -146,6 +146,15 @@ export default function GameArcadePage() {
       setMaxStreakInRound((prev) => Math.max(prev, newStreak));
       setScore((prev) => prev + evaluated.earnedXP);
 
+      // Immediately bank earned XP to active user profile / storage so header updates live
+      if (evaluated.earnedXP > 0) {
+        const currentStored = getLocalProgress();
+        saveLocalProgress({
+          ...currentStored,
+          lifetimeXP: currentStored.lifetimeXP + evaluated.earnedXP,
+        });
+      }
+
       const nextHistory = [
         ...history,
         {
@@ -176,7 +185,7 @@ export default function GameArcadePage() {
 
       const currentStored = getLocalProgress();
       const { updatedProgress, newlyUnlocked: unlocked } = recordRoundOutcome(currentStored, {
-        earnedScore: finalCalc.score,
+        earnedScore: 0, // Points are credited live on each question answered
         accuracy: finalCalc.accuracy,
         history,
         maxStreakInRound,
