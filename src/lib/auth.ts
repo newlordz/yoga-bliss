@@ -128,18 +128,19 @@ export async function signUpUser(params: {
   displayName?: string;
   email?: string;
 }): Promise<{ success: boolean; user?: SafeUser; error?: string }> {
-  const username = params.username.trim().toLowerCase();
+  const username = params.username.trim().replace(/\s+/g, " ");
   const password = params.password.trim();
-  const displayName = (params.displayName || params.username).trim();
+  const displayName = (params.displayName || username).trim();
   const email = params.email?.trim().toLowerCase();
 
   if (!username || username.length < 3) {
     return { success: false, error: "Username must be at least 3 characters." };
   }
-  if (!/^[a-z0-9_-]+$/.test(username)) {
+  // Allow letters, numbers, spaces, dots, hyphens, and underscores (e.g. "Enoch Essel")
+  if (!/^[\p{L}\p{N}_\- .]+$/u.test(username)) {
     return {
       success: false,
-      error: "Username may only contain letters, numbers, hyphens, and underscores.",
+      error: "Username may only contain letters, numbers, spaces, hyphens, and underscores.",
     };
   }
   if (!password || password.length < 4) {
@@ -148,10 +149,13 @@ export async function signUpUser(params: {
 
   const accounts = getAllAccounts();
 
-  // Check if username already exists
-  const existingByUsername = Object.values(accounts).find(
-    (acc) => acc.username.toLowerCase() === username
-  );
+  // Check if username already exists (case-insensitive and whitespace-normalized)
+  const normUser = username.toLowerCase();
+  const stripUser = normUser.replace(/\s+/g, "");
+  const existingByUsername = Object.values(accounts).find((acc) => {
+    const accNorm = acc.username.toLowerCase();
+    return accNorm === normUser || accNorm.replace(/\s+/g, "") === stripUser;
+  });
   if (existingByUsername) {
     return { success: false, error: "Username is already taken. Please choose another." };
   }
@@ -202,6 +206,7 @@ export async function loginUser(
   password: string
 ): Promise<{ success: boolean; user?: SafeUser; error?: string }> {
   const cleanId = identifier.trim().toLowerCase();
+  const strippedId = cleanId.replace(/\s+/g, "");
   const cleanPassword = password.trim();
 
   if (!cleanId || !cleanPassword) {
@@ -209,11 +214,14 @@ export async function loginUser(
   }
 
   const accounts = getAllAccounts();
-  const targetAccount = Object.values(accounts).find(
-    (acc) =>
-      acc.username.toLowerCase() === cleanId ||
+  const targetAccount = Object.values(accounts).find((acc) => {
+    const accNorm = acc.username.toLowerCase();
+    return (
+      accNorm === cleanId ||
+      accNorm.replace(/\s+/g, "") === strippedId ||
       (acc.email && acc.email.toLowerCase() === cleanId)
-  );
+    );
+  });
 
   if (!targetAccount) {
     return { success: false, error: "Account not found. Please check your username or register." };

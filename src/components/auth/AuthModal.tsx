@@ -239,7 +239,7 @@ export function AuthModal({
             <form key={mode} onSubmit={handleSubmit} className="space-y-3.5 text-xs">
               <div>
                 <label className="block font-mono text-[11px] uppercase text-[#5c6b61] mb-1">
-                  Username <span className="text-[#a34828]">*</span>
+                  Username / Player Name <span className="text-[#a34828]">*</span>
                 </label>
                 <input
                   type="text"
@@ -247,7 +247,7 @@ export function AuthModal({
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="off"
-                  autoCapitalize="none"
+                  autoCapitalize="words"
                   spellCheck={false}
                   className="w-full rounded border border-[#ded5c5] bg-[#ffffff] px-3 py-2 text-sm text-[#1a241e] focus:border-[#1f3a2b] focus:outline-hidden"
                 />

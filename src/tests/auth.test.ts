@@ -81,6 +81,32 @@ describe("Offline Player Account & Auth System", () => {
     expect(duplicate.error).toContain("already taken");
   });
 
+  it("allows player names with spaces (e.g. Enoch Essel)", async () => {
+    const res = await signUpUser({
+      username: "Enoch Essel",
+      password: "mypassword123",
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.user?.username).toBe("Enoch Essel");
+    expect(res.user?.displayName).toBe("Enoch Essel");
+
+    logoutUser();
+
+    // Log in with exact name
+    const loginExact = await loginUser("Enoch Essel", "mypassword123");
+    expect(loginExact.success).toBe(true);
+
+    logoutUser();
+
+    // Log in case-insensitively or without spaces
+    const loginLower = await loginUser("enoch essel", "mypassword123");
+    expect(loginLower.success).toBe(true);
+
+    const loginNoSpaces = await loginUser("enochessel", "mypassword123");
+    expect(loginNoSpaces.success).toBe(true);
+  });
+
   it("validates username and password lengths", async () => {
     const shortUser = await signUpUser({ username: "ab", password: "validpass" });
     expect(shortUser.success).toBe(false);
