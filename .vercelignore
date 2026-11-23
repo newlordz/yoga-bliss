@@ -1,0 +1,10 @@
+dist
+electron
+out
+.next
+*.exe
+*.bat
+poses_full.json
+poses_manifest.json
+download_all_poses.js
+release_artifacts
