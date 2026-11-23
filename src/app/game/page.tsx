@@ -17,7 +17,6 @@ import {
   recordRoundOutcome,
   selectAdaptivePracticePoses,
   ACHIEVEMENTS,
-  PlayerProgress,
   DEFAULT_PLAYER_PROGRESS,
 } from "@/lib/progression";
 import {
@@ -30,6 +29,8 @@ import {
   setSoundEnabled,
 } from "@/lib/audio";
 import { PoseIllustration } from "@/components/game/PoseIllustration";
+import { useCurrentUser } from "@/lib/auth";
+import { AuthModal } from "@/components/auth/AuthModal";
 
 type GameView = "menu" | "play" | "results" | "codex" | "trophies";
 
@@ -50,12 +51,11 @@ export default function GameArcadePage() {
 
   // Audio state
   const [soundOn, setSoundOn] = useState(() => (typeof window !== "undefined" ? isSoundEnabled() : true));
+  const currentUser = useCurrentUser();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Player persistent data
-  const [progress, setProgress] = useState<PlayerProgress>(() => {
-    if (typeof window !== "undefined") return getLocalProgress();
-    return DEFAULT_PLAYER_PROGRESS;
-  });
+  const progress = currentUser?.progress || (isClient ? getLocalProgress() : DEFAULT_PLAYER_PROGRESS);
 
   // Active round state
   const [round, setRound] = useState<QuizRound | null>(null);
@@ -185,7 +185,6 @@ export default function GameArcadePage() {
       });
 
       saveLocalProgress(updatedProgress);
-      setProgress(updatedProgress);
       setNewlyUnlocked(unlocked);
       setView("results");
     }
@@ -256,11 +255,26 @@ export default function GameArcadePage() {
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="font-mono text-xs text-[#a3b899]">
-              XP: <span className="font-bold text-[#faf7f2]">{progress.lifetimeXP}</span> • Rounds:{" "}
-              <span className="font-bold text-[#faf7f2]">{progress.roundsPlayed}</span>
-            </div>
+          <div className="flex items-center gap-3">
+            {currentUser ? (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-full border border-[#d4af37]/40 bg-[#1c2a21] px-3 py-1 font-mono text-xs text-[#faf7f2] hover:bg-[#25392d] cursor-pointer"
+                title="Account Profile"
+              >
+                <span>🧘</span>
+                <span className="font-bold text-[#d4af37]">{currentUser.displayName}</span>
+                <span className="text-[#a3b899]">({progress.lifetimeXP} XP)</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="rounded border border-[#d4af37] bg-[#d4af37]/15 px-3 py-1 font-mono text-xs font-bold text-[#d4af37] hover:bg-[#d4af37] hover:text-[#141f18] cursor-pointer transition-colors"
+                title="Sign in or register to bank points"
+              >
+                👤 Sign In / Register
+              </button>
+            )}
             <button
               onClick={toggleSound}
               className="rounded border border-[#2d4434] bg-[#1a2820] px-3 py-1 font-mono text-xs text-[#d4af37] hover:bg-[#233529] cursor-pointer"
@@ -524,6 +538,45 @@ export default function GameArcadePage() {
               </div>
             </div>
 
+            {/* Account Bank / Escrow Status */}
+            {currentUser ? (
+              <div className="mb-6 p-3 rounded-lg border border-[#76b58e]/40 bg-[#14261b] flex items-center justify-between text-xs font-mono">
+                <div className="flex items-center gap-2">
+                  <span className="text-base text-[#76b58e]">✓</span>
+                  <div>
+                    <p className="font-bold text-[#76b58e]">
+                      XP Banked to @{currentUser.username}
+                    </p>
+                    <p className="text-[10px] text-[#8c9f91]">
+                      Career Total: {currentUser.progress.lifetimeXP} XP
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="text-[#d4af37] underline hover:text-white cursor-pointer"
+                >
+                  View Profile
+                </button>
+              </div>
+            ) : (
+              <div className="mb-6 p-4 rounded-lg border-2 border-dashed border-[#d4af37] bg-[#22281b] text-center">
+                <span className="text-2xl">🎯</span>
+                <h3 className="font-serif font-bold text-base text-[#faf7f2] mt-1">
+                  Bank Your +{finalResult.score} XP!
+                </h3>
+                <p className="text-xs text-[#c4b5a0] mt-1 mb-3">
+                  You played as Guest. Create a free local account or sign in to permanently save your score and trophies!
+                </p>
+                <button
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="rounded bg-[#d4af37] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-[#141f18] hover:bg-[#e6c34e] cursor-pointer transition-colors"
+                >
+                  Sign In / Register to Bank Points &rarr;
+                </button>
+              </div>
+            )}
+
             {/* Newly Unlocked Trophies Banner */}
             {newlyUnlocked.length > 0 && (
               <div className="mb-6 p-4 rounded-lg border border-[#d4af37] bg-[#2b2f1f] text-xs">
@@ -648,6 +701,24 @@ export default function GameArcadePage() {
           <span className="font-bold text-[#76b58e]">
             {score} XP
           </span>
+
+          {currentUser ? (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="font-serif font-bold text-xs text-[#d4af37] hover:underline cursor-pointer"
+              title="Account Profile"
+            >
+              🧘 {currentUser.displayName}
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="text-[10px] font-mono uppercase font-bold text-[#e89078] bg-[#3a1d17] border border-[#a34828]/40 px-2 py-0.5 rounded hover:bg-[#522920] cursor-pointer"
+              title="Sign in to bank points"
+            >
+              👤 Guest
+            </button>
+          )}
 
           <button
             onClick={toggleSound}
@@ -784,6 +855,12 @@ export default function GameArcadePage() {
           )}
         </div>
       </div>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        guestPointsToClaim={finalResult?.score || score}
+      />
     </div>
   );
 }

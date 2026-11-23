@@ -33,6 +33,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { PoseIllustration } from "@/components/game/PoseIllustration";
+import { useCurrentUser } from "@/lib/auth";
+import { AuthModal } from "@/components/auth/AuthModal";
 
 const TIER_ORDER: SkillTier[] = ["beginner", "amateur", "pro", "legend"];
 const PROMPT_ORDER: QuestionLanguageMode[] = ["english", "sanskrit", "mixed"];
@@ -103,6 +105,8 @@ function GameArena({
   const [finalResult, setFinalResult] = useState<RoundResult | null>(null);
   const [newlyUnlockedAchievements, setNewlyUnlockedAchievements] = useState<string[]>([]);
   const [adaptiveWeakCount, setAdaptiveWeakCount] = useState<number | null>(null);
+  const currentUser = useCurrentUser();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const continueBtnRef = useRef<HTMLButtonElement>(null);
 
   // Focus Continue button with preventScroll: true for screen readers & keyboard focus
@@ -239,6 +243,7 @@ function GameArena({
         tier: activeTier,
       });
 
+      // Always save to storage (which writes to active user account if logged in, or local guest)
       saveLocalProgress(updatedProgress);
       setNewlyUnlockedAchievements(newlyUnlocked);
     }
@@ -387,6 +392,47 @@ function GameArena({
             </div>
           </div>
 
+          {/* Account Bank / Escrow Status */}
+          {currentUser ? (
+            <div className="mb-6 p-3 rounded-md border border-[#4d7358] bg-[#f3eee5] flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-base">✓</span>
+                <div>
+                  <p className="font-bold text-[#1f3a2b]">
+                    Points Banked to @{currentUser.username}
+                  </p>
+                  <p className="text-[11px] text-[#5c6b61]">
+                    Lifetime Score: {currentUser.progress.lifetimeXP} XP
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="font-mono text-[10px] text-[#1f3a2b] font-bold uppercase underline hover:text-[#a34828] cursor-pointer"
+              >
+                View Profile
+              </button>
+            </div>
+          ) : (
+            <div className="mb-6 p-4 rounded-md border-2 border-dashed border-[#a34828] bg-[#fbf3ef] text-center">
+              <span className="text-2xl">🎯</span>
+              <h3 className="font-serif font-bold text-base text-[#1a241e] mt-1">
+                Save Your Points (+{finalResult.score} XP)
+              </h3>
+              <p className="text-xs text-[#5c6b61] mt-1 mb-3 max-w-md mx-auto">
+                You played as a Guest! In order for your points to count and take effect, create an account or sign in now.
+              </p>
+              <Button
+                variant="terracotta"
+                size="sm"
+                onClick={() => setIsAuthModalOpen(true)}
+                className="font-mono uppercase font-bold text-xs"
+              >
+                Sign In / Register to Bank Points &rarr;
+              </Button>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex flex-col sm:flex-row items-center gap-2">
             <Button
@@ -406,6 +452,12 @@ function GameArena({
             </Link>
           </div>
         </div>
+
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          guestPointsToClaim={finalResult.score}
+        />
       </div>
     );
   }
@@ -413,6 +465,24 @@ function GameArena({
   // Active Question Arena
   return (
     <div className="mx-auto max-w-2xl px-4 py-3 sm:py-5 sm:px-6">
+      {/* Guest Mode Notice */}
+      {!currentUser && (
+        <div className="mb-3 px-3 py-1.5 rounded-md border border-[#a34828]/30 bg-[#fbf3ef] flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <span>👤</span>
+            <span className="text-[#87361a] text-[11px] sm:text-xs">
+              Guest Session: Points are held in escrow until you sign in.
+            </span>
+          </div>
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="font-mono text-[10px] uppercase font-bold text-[#a34828] hover:underline cursor-pointer ml-2 shrink-0"
+          >
+            Sign In / Register &rarr;
+          </button>
+        </div>
+      )}
+
       {/* Session Focus Masthead Banner */}
       <div className="mb-3">
         {isSanskritPrompt ? (
@@ -705,6 +775,12 @@ function GameArena({
           )}
         </div>
       </Card>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        guestPointsToClaim={score}
+      />
     </div>
   );
 }

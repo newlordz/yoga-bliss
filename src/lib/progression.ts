@@ -105,18 +105,45 @@ export const DEFAULT_PLAYER_PROGRESS: PlayerProgress = {
   lastPlayedAt: null,
 };
 
+const ACTIVE_SESSION_KEY = "yoga_bliss_active_session_v1";
+const ACCOUNTS_STORAGE_KEY = "yoga_bliss_accounts_v1";
+
+function getStorage(): Storage | null {
+  if (typeof window !== "undefined" && window.localStorage) {
+    return window.localStorage;
+  }
+  if (typeof globalThis !== "undefined" && (globalThis as unknown as { localStorage?: Storage }).localStorage) {
+    return (globalThis as unknown as { localStorage: Storage }).localStorage;
+  }
+  return null;
+}
+
 /**
- * SSR-safe loader for local player progress
+ * SSR-safe loader for player progress (loads active user progress if logged in, otherwise local guest)
  */
 export function getLocalProgress(): PlayerProgress {
-  if (typeof window === "undefined" || !window.localStorage) {
+  const storage = getStorage();
+  if (!storage) {
     return DEFAULT_PLAYER_PROGRESS;
   }
 
   try {
+    // Check if an account is currently logged in
+    const sessionRaw = storage.getItem(ACTIVE_SESSION_KEY);
+    if (sessionRaw) {
+      const session = JSON.parse(sessionRaw);
+      const accountsRaw = storage.getItem(ACCOUNTS_STORAGE_KEY);
+      if (accountsRaw) {
+        const accounts = JSON.parse(accountsRaw);
+        if (accounts[session.id]?.progress) {
+          return accounts[session.id].progress;
+        }
+      }
+    }
+
     const raw =
-      window.localStorage.getItem(STORAGE_KEY) ||
-      window.localStorage.getItem(LEGACY_STORAGE_KEY);
+      storage.getItem(STORAGE_KEY) ||
+      storage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return DEFAULT_PLAYER_PROGRESS;
 
     const parsed = JSON.parse(raw);
@@ -139,15 +166,30 @@ export function getLocalProgress(): PlayerProgress {
 }
 
 /**
- * SSR-safe saver for local player progress
+ * SSR-safe saver for player progress (saves to active user account if logged in, otherwise guest storage)
  */
 export function saveLocalProgress(progress: PlayerProgress): boolean {
-  if (typeof window === "undefined" || !window.localStorage) {
+  const storage = getStorage();
+  if (!storage) {
     return false;
   }
 
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    // If active user is logged in, save to their account
+    const sessionRaw = storage.getItem(ACTIVE_SESSION_KEY);
+    if (sessionRaw) {
+      const session = JSON.parse(sessionRaw);
+      const accountsRaw = storage.getItem(ACCOUNTS_STORAGE_KEY);
+      if (accountsRaw) {
+        const accounts = JSON.parse(accountsRaw);
+        if (accounts[session.id]) {
+          accounts[session.id].progress = progress;
+          storage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
+        }
+      }
+    }
+
+    storage.setItem(STORAGE_KEY, JSON.stringify(progress));
     return true;
   } catch (err) {
     console.warn("Failed to save player progress to localStorage:", err);
