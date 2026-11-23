@@ -31,7 +31,7 @@ export function AuthModal({
   const currentUser = useCurrentUser();
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
 
-  // Form inputs
+  // Form inputs - strictly empty by default with no prefilled values
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -233,7 +233,7 @@ export function AuthModal({
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+            <form key={mode} onSubmit={handleSubmit} className="space-y-3.5 text-xs">
               <div>
                 <label className="block font-mono text-[11px] uppercase text-[#5c6b61] mb-1">
                   Username <span className="text-[#a34828]">*</span>
@@ -243,7 +243,9 @@ export function AuthModal({
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. yogi_alex"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   className="w-full rounded border border-[#ded5c5] bg-[#ffffff] px-3 py-2 text-sm text-[#1a241e] focus:border-[#1f3a2b] focus:outline-hidden"
                 />
               </div>
@@ -258,7 +260,9 @@ export function AuthModal({
                       type="text"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="e.g. Alex M."
+                      autoComplete="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
                       className="w-full rounded border border-[#ded5c5] bg-[#ffffff] px-3 py-2 text-sm text-[#1a241e] focus:border-[#1f3a2b] focus:outline-hidden"
                     />
                   </div>
@@ -271,7 +275,9 @@ export function AuthModal({
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="e.g. alex@example.com"
+                      autoComplete="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
                       className="w-full rounded border border-[#ded5c5] bg-[#ffffff] px-3 py-2 text-sm text-[#1a241e] focus:border-[#1f3a2b] focus:outline-hidden"
                     />
                   </div>
@@ -287,7 +293,7 @@ export function AuthModal({
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  autoComplete="new-password"
                   className="w-full rounded border border-[#ded5c5] bg-[#ffffff] px-3 py-2 text-sm text-[#1a241e] focus:border-[#1f3a2b] focus:outline-hidden"
                 />
               </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, Suspense, useSyncExternalStore, useRef } from "react";
+import React, { useState, useEffect, useCallback, Suspense, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ALL_POSES, STARTER_POSES, POSES_BY_CATEGORY, POSES_BY_TIER } from "@/data/poses";
@@ -107,15 +107,16 @@ function GameArena({
   const [adaptiveWeakCount, setAdaptiveWeakCount] = useState<number | null>(null);
   const currentUser = useCurrentUser();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const continueBtnRef = useRef<HTMLButtonElement>(null);
 
-  // Focus Continue button with preventScroll: true for screen readers & keyboard focus
-  // without triggering any browser auto-scrolling
-  useEffect(() => {
-    if (feedback && continueBtnRef.current) {
-      continueBtnRef.current.focus({ preventScroll: true });
+  // Preserve scroll position to prevent page from jumping downward
+  const lockScrollPosition = () => {
+    if (typeof window !== "undefined") {
+      const currentY = window.scrollY;
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: currentY, behavior: "instant" });
+      });
     }
-  }, [feedback]);
+  };
 
   // Initialize round
   const startNewRound = useCallback(
@@ -187,6 +188,12 @@ function GameArena({
       setIsLocked(true);
       setSelectedChoiceId(choiceId);
 
+      // Unfocus clicked element so browser does not auto-scroll to it
+      if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      lockScrollPosition();
+
       const evaluated = evaluateAnswer(currentQuestion, choiceId, currentStreak);
       setFeedback(evaluated);
 
@@ -221,6 +228,7 @@ function GameArena({
   // Advance to next question or conclude round
   const handleContinue = useCallback(() => {
     if (!round) return;
+    lockScrollPosition();
 
     if (currentIndex + 1 < round.totalQuestions) {
       setCurrentIndex((prev) => prev + 1);
@@ -635,12 +643,12 @@ function GameArena({
         </div>
 
         {/* Visual Pose Display */}
-        <div className="mb-3 sm:mb-4">
+        <div className="mb-3 sm:mb-3.5">
           <PoseIllustration
             poseId={currentQuestion.targetPose.id}
             imageSrc={currentQuestion.targetPose.image}
             alt={currentQuestion.targetPose.imageAlt}
-            className="h-48 sm:h-56 w-full"
+            className="h-36 sm:h-44 w-full"
           />
         </div>
 
@@ -648,7 +656,7 @@ function GameArena({
         <div
           role="group"
           aria-label="Pose answer choices"
-          className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 mb-3"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 mb-2.5"
         >
           {currentQuestion.choices.map((choice, idx) => {
             const isSelected = selectedChoiceId === choice.id;
@@ -680,19 +688,19 @@ function GameArena({
                 key={choice.id}
                 onClick={() => handleSelectChoice(choice.id)}
                 disabled={isLocked}
-                className={`flex min-h-[50px] sm:min-h-[54px] items-center justify-between rounded-md px-3.5 py-2 text-left transition-colors cursor-pointer disabled:cursor-default focus-visible:ring-2 focus-visible:ring-[#1f3a2b] ${buttonStyles}`}
+                className={`flex min-h-[46px] sm:min-h-[50px] items-center justify-between rounded-md px-3 py-1.5 sm:px-3.5 sm:py-2 text-left transition-colors cursor-pointer disabled:cursor-default focus-visible:ring-2 focus-visible:ring-[#1f3a2b] ${buttonStyles}`}
                 aria-pressed={isSelected}
               >
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                   <span className="font-mono text-[11px] text-[#5c6b61] w-4 text-center">
                     [{idx + 1}]
                   </span>
                   <div>
-                    <span className={`block text-sm sm:text-base ${isSanskritPrompt ? "font-serif italic font-bold text-[#1a241e]" : "font-medium"}`}>
+                    <span className={`block text-xs sm:text-sm ${isSanskritPrompt ? "font-serif italic font-bold text-[#1a241e]" : "font-medium"}`}>
                       {primaryLabel}
                     </span>
                     {isLocked && (
-                      <span className="block text-[11px] text-[#5c6b61] font-sans">
+                      <span className="block text-[10px] text-[#5c6b61] font-sans">
                         {secondaryLabel}
                       </span>
                     )}
@@ -715,10 +723,10 @@ function GameArena({
         </div>
 
         {/* Feedback Section with aria-live */}
-        <div aria-live="polite">
+        <div aria-live="polite" className="mt-1">
           {feedback && (
             <div
-              className={`p-3 sm:p-3.5 border rounded-md transition-colors ${
+              className={`p-2.5 sm:p-3 border rounded-md transition-colors ${
                 feedback.isCorrect
                   ? isSanskritPrompt
                     ? "bg-[#faf7f2] border-[#a34828] text-[#1a241e]"
@@ -726,7 +734,7 @@ function GameArena({
                   : "bg-[#faf7f2] border-[#a34828] text-[#1a241e]"
               }`}
             >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs uppercase font-bold">
@@ -762,11 +770,10 @@ function GameArena({
                 </div>
 
                 <Button
-                  ref={continueBtnRef}
                   variant="primary"
                   size="sm"
                   onClick={handleContinue}
-                  className="shrink-0 text-xs uppercase tracking-wider self-end sm:self-auto"
+                  className="shrink-0 text-xs uppercase tracking-wider self-end sm:self-auto font-bold cursor-pointer"
                 >
                   Continue &rarr;
                 </Button>
