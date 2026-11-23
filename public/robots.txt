@@ -1,0 +1,6 @@
+# Yoga Bliss Robots Rules
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://yogabliss.app/sitemap.xml
